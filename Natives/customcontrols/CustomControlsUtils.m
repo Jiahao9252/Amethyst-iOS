@@ -369,6 +369,94 @@ void generateAndSaveDefaultControl() {
     [os close];
 }
 
+static NSMutableDictionary* peButton(NSString* name, int key, NSString* x, NSString* y, CGFloat w, CGFloat h, BOOL toggle, BOOL swipe, BOOL inGame, BOOL inMenu) {
+    int keys[4] = {key, 0, 0, 0};
+    return createDefaultControlButton(name, keys, x, y, w, h, toggle, swipe, inGame, inMenu, 2);
+}
+
+// Layout modelled after Minecraft Pocket Edition (Bedrock touch controls):
+// joystick bottom-left, jump/sneak bottom-right, chat+pause top-center,
+// inventory next to the hotbar. Tap = use/place, hold = break (built in gestures).
+void generateAndSavePEControl() {
+    NSString *pePath = [NSString stringWithFormat:@"%s/controlmap/PE.json", getenv("AME_HOME")];
+    if ([NSFileManager.defaultManager fileExistsAtPath:pePath]) {
+        return;
+    }
+
+    NSMutableDictionary *dict = nil;
+    NSData *data = [NSData dataWithContentsOfFile:[NSString stringWithFormat:@"%s/controlmap/default.json", getenv("AME_HOME")]];
+    if (data) {
+        id obj = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+        if ([obj isKindOfClass:NSMutableDictionary.class]) dict = obj;
+    }
+    if (!dict) {
+        dict = [NSMutableDictionary new];
+        dict[@"version"] = @(8);
+        dict[@"scaledAt"] = @(100);
+        dict[@"mDrawerDataList"] = [NSMutableArray new];
+    }
+    // Keep the "More" drawer (F5, F3, keyboard, player list...) from the default layout.
+    NSMutableArray *list = [NSMutableArray new];
+    dict[@"mControlDataList"] = list;
+
+    // Jump (big, bottom-right) and sneak (small, below-left of it)
+    [list addObject:peButton(@"Jump", GLFW_KEY_SPACE,
+        @"0.94 * ${screen_width} - ${width}", @"0.78 * ${screen_height} - ${height}",
+        96, 96, NO, NO, YES, NO)];
+    [list addObject:peButton(@"Sneak", GLFW_KEY_LEFT_SHIFT,
+        @"0.94 * ${screen_width} - ${width} - 110", @"0.93 * ${screen_height} - ${height}",
+        68, 68, YES, NO, YES, NO)];
+    // Sprint toggle above the joystick
+    [list addObject:peButton(@"Sprint", GLFW_KEY_LEFT_CONTROL,
+        @"0.03 * ${screen_width}", @"0.97 * ${screen_height} - 210 - ${height} - 14",
+        68, 68, YES, NO, YES, NO)];
+    // Top-center: chat and pause (like PE)
+    [list addObject:peButton(@"Chat", GLFW_KEY_T,
+        @"0.5 * ${screen_width} - ${width} - 6", @"0.0 * ${screen_height} + 6",
+        60, 44, NO, NO, YES, NO)];
+    [list addObject:peButton(@"Pause", GLFW_KEY_ESCAPE,
+        @"0.5 * ${screen_width} + 6", @"0.0 * ${screen_height} + 6",
+        60, 44, NO, NO, YES, NO)];
+    // Inventory ("...") to the right of the hotbar
+    [list addObject:peButton(@"...", GLFW_KEY_E,
+        @"0.5 * ${screen_width} + 0.2 * ${screen_width}", @"0.97 * ${screen_height} - ${height}",
+        60, 48, NO, NO, YES, NO)];
+    // Launcher/runtime menu (needed to leave the game) top-right
+    [list addObject:peButton(@"Runtime\nMenu", SPECIALBTN_MENU,
+        @"1.0 * ${screen_width} - ${width} - 6", @"0.0 * ${screen_height} + 6",
+        104.8, 39.2, NO, NO, YES, YES)];
+    // Buttons used while a GUI/menu screen is open
+    [list addObject:peButton(@"Exit\nMenu", GLFW_KEY_ESCAPE,
+        @"1.0 * ${screen_width} - ${width} - 120", @"0.0 * ${screen_height} + 6",
+        104.8, 39.2, NO, NO, NO, YES)];
+    [list addObject:peButton(@"Right\nClick", SPECIALBTN_MOUSESEC,
+        @"0.8756154 * ${screen_width} - ${width}", @"0.8178498 * ${screen_height} - ${height}",
+        69.6, 69.6, NO, YES, NO, YES)];
+    [list addObject:peButton(@"Left\nClick", SPECIALBTN_MOUSEPRI,
+        @"0.7756397 * ${screen_width} - ${width}", @"0.8224885 * ${screen_height} - ${height}",
+        69.6, 69.6, NO, YES, NO, YES)];
+    [list addObject:peButton(@"Middle\nClick", SPECIALBTN_MOUSEMID,
+        @"0.83548373 * ${screen_width} - ${width}", @"0.67798775 * ${screen_height} - ${height}",
+        69.6, 69.6, NO, YES, NO, YES)];
+
+    // Joystick: bottom-left. Pushing fully forward shows the lock icon (forward lock = auto-run).
+    NSMutableDictionary *joystick = createDefaultControlButton(@"button",
+        (int[]){0,0,0,0},
+        @"0.03 * ${screen_width}",
+        @"0.97 * ${screen_height} - ${height}",
+        200, 200, NO, NO, YES, NO, 0);
+    joystick[@"absolute"] = @NO;
+    joystick[@"forwardLock"] = @YES;
+    joystick[@"cornerRadius"] = @(0);
+    joystick[@"strokeColor"] = @(1291845632);
+    dict[@"mJoystickDataList"] = [NSMutableArray arrayWithObject:joystick];
+
+    NSOutputStream *os = [[NSOutputStream alloc] initToFileAtPath:pePath append:NO];
+    [os open];
+    [NSJSONSerialization writeJSONObject:dict toStream:os options:NSJSONWritingPrettyPrinted error:nil];
+    [os close];
+}
+
 void generateAndSaveDefaultControlForGamepad() {
     NSString *gamepadPath = [NSString stringWithFormat:@"%s/controlmap/gamepads/default.json", getenv("AME_HOME")];
     if ([NSFileManager.defaultManager fileExistsAtPath:gamepadPath]) {

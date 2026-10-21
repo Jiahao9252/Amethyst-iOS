@@ -202,6 +202,13 @@ void init_setupCustomControls() {
     NSString *controlPath = [@(getenv("AME_HOME")) stringByAppendingPathComponent:@"controlmap"];
     [fm createDirectoryAtPath:controlPath withIntermediateDirectories:NO attributes:nil error:nil];
     generateAndSaveDefaultControl();
+    generateAndSavePEControl();
+    // One-time: make the Pocket Edition style layout the default and keep touch controls visible
+    if (!getPrefBool(@"control.pe_migrated")) {
+        setPrefObject(@"control.default_ctrl", @"PE.json");
+        setPrefBool(@"control.hardware_hide", NO);
+        setPrefBool(@"control.pe_migrated", YES);
+    }
     NSString *gamepadControlPath = [controlPath stringByAppendingPathComponent:@"gamepads"];
     [fm createDirectoryAtPath:gamepadControlPath withIntermediateDirectories:NO attributes:nil error:nil];
     generateAndSaveDefaultControlForGamepad();
