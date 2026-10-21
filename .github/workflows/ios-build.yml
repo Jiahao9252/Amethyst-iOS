@@ -7,6 +7,9 @@ on:
     paths-ignore:
       - '**.md'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build unsigned IPA
@@ -58,6 +61,16 @@ jobs:
           name: amethyst-ios-ipa
           path: artifacts/org.angelauramc.amethyst-*-ios.ipa
           if-no-files-found: error
+
+      - name: Publish IPA as GitHub Release (fast direct download)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          IPA=$(ls artifacts/org.angelauramc.amethyst-*-ios.ipa | head -1)
+          cp "$IPA" Amethyst.ipa
+          gh release delete latest --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+          gh release create latest Amethyst.ipa --repo "$GITHUB_REPOSITORY" \
+            --title "Latest build" --notes "Unsigned IPA built from ${GITHUB_SHA::7}. Sideload with iLoader." --target "$GITHUB_SHA"
 
       - name: Upload build logs on failure
         if: failure()
