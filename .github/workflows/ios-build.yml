@@ -1,0 +1,70 @@
+name: iOS build (GitHub-hosted)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select newest Xcode 26
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$X" ]; then
+            echo "Using $X"
+            sudo xcode-select -s "$X/Contents/Developer"
+          else
+            echo "No Xcode 26 found, using default"
+          fi
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Set up JDK 8 (boot JDK for JavaApp)
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+
+      - name: Install build tools
+        run: |
+          brew install make cmake ldid
+          echo "/opt/homebrew/opt/make/libexec/gnubin" >> "$GITHUB_PATH"
+          cmake --version
+          which ldid
+
+      - name: Build IPA (iOS, sideload entitlements)
+        run: |
+          export PATH=/opt/homebrew/bin:$PATH
+          gmake -j"$(sysctl -n hw.ncpu)" package PLATFORM=2 BOOTJDK="$JAVA_HOME/bin"
+
+      - name: List artifacts
+        if: always()
+        run: ls -lah artifacts || true
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: amethyst-ios-ipa
+          path: artifacts/org.angelauramc.amethyst-*-ios.ipa
+          if-no-files-found: error
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dirs-on-failure
+          path: |
+            Natives/build/CMakeFiles/CMakeError.log
+            Natives/build/CMakeFiles/CMakeOutput.log
+          if-no-files-found: ignore
