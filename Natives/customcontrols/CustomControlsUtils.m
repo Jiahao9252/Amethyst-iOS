@@ -399,27 +399,44 @@ void generateAndSavePEControl() {
     NSMutableArray *list = [NSMutableArray new];
     dict[@"mControlDataList"] = list;
 
-    // Jump (big, bottom-right) and sneak (small, below-left of it)
-    [list addObject:peButton(@"Jump", GLFW_KEY_SPACE,
-        @"0.94 * ${screen_width} - ${width}", @"0.78 * ${screen_height} - ${height}",
-        96, 96, NO, NO, YES, NO)];
+    // Classic PE D-pad (bottom-left): up/left/right/down arrows + centre sneak. Swipe between keys works.
+    NSString *cx = @"0.10 * ${screen_width}";
+    [list addObject:peButton(@"\u25B2", GLFW_KEY_W,
+        cx, @"0.97 * ${screen_height} - 3 * ${height} - 12",
+        84, 84, NO, YES, YES, NO)];
+    [list addObject:peButton(@"\u25C0", GLFW_KEY_A,
+        [cx stringByAppendingString:@" - ${width} - 6"], @"0.97 * ${screen_height} - 2 * ${height} - 6",
+        84, 84, NO, YES, YES, NO)];
     [list addObject:peButton(@"Sneak", GLFW_KEY_LEFT_SHIFT,
-        @"0.94 * ${screen_width} - ${width} - 110", @"0.93 * ${screen_height} - ${height}",
-        68, 68, YES, NO, YES, NO)];
-    // Sprint toggle above the joystick
+        cx, @"0.97 * ${screen_height} - 2 * ${height} - 6",
+        84, 84, NO, YES, YES, NO)];
+    [list addObject:peButton(@"\u25B6", GLFW_KEY_D,
+        [cx stringByAppendingString:@" + ${width} + 6"], @"0.97 * ${screen_height} - 2 * ${height} - 6",
+        84, 84, NO, YES, YES, NO)];
+    [list addObject:peButton(@"\u25BC", GLFW_KEY_S,
+        cx, @"0.97 * ${screen_height} - ${height}",
+        84, 84, NO, YES, YES, NO)];
+    // Jump: right side, up arrow like PE
+    [list addObject:peButton(@"\u2B06", GLFW_KEY_SPACE,
+        @"0.96 * ${screen_width} - ${width}", @"0.74 * ${screen_height} - ${height}",
+        84, 84, NO, NO, YES, NO)];
+    // Sprint (toggle) above jump
     [list addObject:peButton(@"Sprint", GLFW_KEY_LEFT_CONTROL,
-        @"0.03 * ${screen_width}", @"0.97 * ${screen_height} - 210 - ${height} - 14",
-        68, 68, YES, NO, YES, NO)];
-    // Top-center: chat and pause (like PE)
+        @"0.96 * ${screen_width} - ${width}", @"0.74 * ${screen_height} - 2 * ${height} - 14",
+        84, 56, YES, NO, YES, NO)];
+    // Top-center row: perspective, chat, pause (like PE)
+    [list addObject:peButton(@"F5", GLFW_KEY_F5,
+        @"0.5 * ${screen_width} - 84", @"0.0 * ${screen_height} + 6",
+        52, 44, NO, NO, YES, NO)];
     [list addObject:peButton(@"Chat", GLFW_KEY_T,
-        @"0.5 * ${screen_width} - ${width} - 6", @"0.0 * ${screen_height} + 6",
-        60, 44, NO, NO, YES, NO)];
-    [list addObject:peButton(@"Pause", GLFW_KEY_ESCAPE,
-        @"0.5 * ${screen_width} + 6", @"0.0 * ${screen_height} + 6",
-        60, 44, NO, NO, YES, NO)];
+        @"0.5 * ${screen_width} - 26", @"0.0 * ${screen_height} + 6",
+        52, 44, NO, NO, YES, NO)];
+    [list addObject:peButton(@"II", GLFW_KEY_ESCAPE,
+        @"0.5 * ${screen_width} + 32", @"0.0 * ${screen_height} + 6",
+        52, 44, NO, NO, YES, NO)];
     // Inventory ("...") to the right of the hotbar
     [list addObject:peButton(@"...", GLFW_KEY_E,
-        @"0.5 * ${screen_width} + 0.2 * ${screen_width}", @"0.97 * ${screen_height} - ${height}",
+        @"0.5 * ${screen_width} + 0.16 * ${screen_width}", @"0.97 * ${screen_height} - ${height}",
         60, 48, NO, NO, YES, NO)];
     // Launcher/runtime menu (needed to leave the game) top-right
     [list addObject:peButton(@"Runtime\nMenu", SPECIALBTN_MENU,
@@ -439,17 +456,7 @@ void generateAndSavePEControl() {
         @"0.83548373 * ${screen_width} - ${width}", @"0.67798775 * ${screen_height} - ${height}",
         69.6, 69.6, NO, YES, NO, YES)];
 
-    // Joystick: bottom-left. Pushing fully forward shows the lock icon (forward lock = auto-run).
-    NSMutableDictionary *joystick = createDefaultControlButton(@"button",
-        (int[]){0,0,0,0},
-        @"0.03 * ${screen_width}",
-        @"0.97 * ${screen_height} - ${height}",
-        200, 200, NO, NO, YES, NO, 0);
-    joystick[@"absolute"] = @NO;
-    joystick[@"forwardLock"] = @YES;
-    joystick[@"cornerRadius"] = @(0);
-    joystick[@"strokeColor"] = @(1291845632);
-    dict[@"mJoystickDataList"] = [NSMutableArray arrayWithObject:joystick];
+    dict[@"mJoystickDataList"] = [NSMutableArray new]; // classic PE uses the D-pad, no joystick
 
     NSOutputStream *os = [[NSOutputStream alloc] initToFileAtPath:pePath append:NO];
     [os open];
